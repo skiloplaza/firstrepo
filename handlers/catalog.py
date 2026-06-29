@@ -102,9 +102,10 @@ async def cb_category(callback: CallbackQuery):
         callback,
         f"📦 <b>{title}</b>\n"
         f"<i>Jami: {total} ta mahsulot</i>",
-        reply_markup=products_kb(products, cat_id, page, total, ITEMS_PER_PAGE),
+        reply_markup=products_kb(products, cat_id, page, total, ITEMS_PER_PAGE, brand=brand),
     )
     await callback.answer()
+
 
 
 

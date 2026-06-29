@@ -82,12 +82,12 @@ def categories_kb(categories, brand=None):
             style=ButtonStyle.PRIMARY,
         )
     builder.adjust(2)
-    back_cd = f"brand:{brand}" if brand else "main_menu"
+    back_cd = "all_categories" if brand else "main_menu"
     builder.row(_b("◀️ Orqaga", back_cd))
     return builder.as_markup()
 
 
-def products_kb(products, category_id, page, total, per_page):
+def products_kb(products, category_id, page, total, per_page, brand=None):
     builder = InlineKeyboardBuilder()
     for p in products:
         price_str = f"{p['price']:,}".replace(",", " ")
@@ -106,8 +106,10 @@ def products_kb(products, category_id, page, total, per_page):
         nav.append(_b("▶️", f"cat:{category_id}:{page+1}"))
     if nav:
         builder.row(*nav)
-    builder.row(_b("◀️ Kategoriyalar", "all_categories"), _b("🏠 Bosh", "main_menu"))
+    back_cd = f"brand:{brand}" if brand else "all_categories"
+    builder.row(_b("◀️ Kategoriyalar", back_cd), _b("🏠 Bosh", "main_menu"))
     return builder.as_markup()
+
 
 
 def product_detail_kb(product_id, cat_id):
