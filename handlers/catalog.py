@@ -15,6 +15,17 @@ from config import ITEMS_PER_PAGE
 router = Router()
 
 
+async def edit_or_reply(callback: CallbackQuery, text: str, reply_markup=None):
+    try:
+        await callback.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    except Exception:
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
+
+
 # ──────────────── catalog entry ────────────────
 
 @router.message(F.text == "🛒 Mahsulotlar")
@@ -41,17 +52,17 @@ async def cb_all_categories(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     brands = await db.get_brands()
     if brands:
-        await callback.message.edit_text(
+        await edit_or_reply(
+            callback,
             "🏷 <b>Brendni tanlang:</b>",
             reply_markup=brands_kb(brands),
-            parse_mode="HTML",
         )
     else:
         cats = await db.get_categories()
-        await callback.message.edit_text(
+        await edit_or_reply(
+            callback,
             "📂 <b>Kategoriyani tanlang:</b>",
             reply_markup=categories_kb(cats),
-            parse_mode="HTML",
         )
     await callback.answer()
 
@@ -62,10 +73,10 @@ async def cb_all_categories(callback: CallbackQuery, state: FSMContext):
 async def cb_brand(callback: CallbackQuery):
     brand = callback.data.split(":", 1)[1]
     cats = await db.get_categories_by_brand(brand)
-    await callback.message.edit_text(
+    await edit_or_reply(
+        callback,
         f"🏷 <b>{brand}</b> — Kategoriya tanlang:",
         reply_markup=categories_kb(cats, brand=brand),
-        parse_mode="HTML",
     )
     await callback.answer()
 
@@ -87,13 +98,14 @@ async def cb_category(callback: CallbackQuery):
     brand = cat["brand"] if cat else ""
     title = f"{brand} · {cat_name}" if brand else cat_name
 
-    await callback.message.edit_text(
+    await edit_or_reply(
+        callback,
         f"📦 <b>{title}</b>\n"
         f"<i>Jami: {total} ta mahsulot</i>",
         reply_markup=products_kb(products, cat_id, page, total, ITEMS_PER_PAGE),
-        parse_mode="HTML",
     )
     await callback.answer()
+
 
 
 # ──────────────── product detail ────────────────

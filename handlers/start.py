@@ -94,12 +94,17 @@ async def check_sub(callback: CallbackQuery):
 @router.callback_query(F.data == "main_menu")
 async def cb_main_menu(callback: CallbackQuery, state: FSMContext):
     await state.clear()
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
     await callback.message.answer(
         "🏠 <b>Bosh menyu</b>",
         reply_markup=main_menu_kb(),
         parse_mode="HTML",
     )
     await callback.answer()
+
 
 
 # ──────────────── noop ────────────────
