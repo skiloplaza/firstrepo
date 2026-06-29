@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
@@ -488,17 +488,30 @@ async def pay_invoice(callback: CallbackQuery):
 from aiogram.types import PreCheckoutQuery
 
 @router.pre_checkout_query()
-async def on_pre_checkout_query(pre_checkout_query: PreCheckoutQuery):
+async def on_pre_checkout_query(pre_checkout_query: PreCheckoutQuery, bot: Bot):
     payload = pre_checkout_query.invoice_payload
     try:
         order_id = int(payload.split(":")[1])
         order, _ = await db.get_order(order_id)
         if order and order["status"] == "pending":
-            await pre_checkout_query.answer(ok=True)
+            await bot.answer_pre_checkout_query(pre_checkout_query_id=pre_checkout_query.id, ok=True)
         else:
-            await pre_checkout_query.answer(ok=False, error_message="Buyurtma topilmadi yoki allaqachon to'langan.")
-    except Exception:
-        await pre_checkout_query.answer(ok=False, error_message="Tizim xatoligi. Keyinroq qayta urining.")
+            await bot.answer_pre_checkout_query(
+                pre_checkout_query_id=pre_checkout_query.id,
+                ok=False,
+                error_message="Buyurtma topilmadi yoki allaqachon to'langan."
+            )
+    except Exception as e:
+        import logging
+        logging.error(f"Error in pre_checkout_query: {e}", exc_info=True)
+        try:
+            await bot.answer_pre_checkout_query(
+                pre_checkout_query_id=pre_checkout_query.id,
+                ok=False,
+                error_message="Tizim xatoligi. Keyinroq qayta urining."
+            )
+        except Exception:
+            pass
 
 
 @router.message(F.successful_payment)
