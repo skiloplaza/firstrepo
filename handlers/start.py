@@ -182,7 +182,7 @@ async def menu_calculator(message: Message, state: FSMContext):
     )
 
 
-@router.message(Calculator.price)
+@router.message(Calculator.price, F.text)
 async def calc_price(message: Message, state: FSMContext):
     if message.text == "❌ Bekor qilish":
         await state.clear()
@@ -203,7 +203,12 @@ async def calc_price(message: Message, state: FSMContext):
     )
 
 
-@router.message(Calculator.quantity)
+@router.message(Calculator.price)
+async def calc_price_invalid(message: Message):
+    await message.answer("❌ Iltimos, narxni faqat son shaklida kiriting!")
+
+
+@router.message(Calculator.quantity, F.text)
 async def calc_quantity(message: Message, state: FSMContext):
     if message.text == "❌ Bekor qilish":
         await state.clear()
@@ -219,6 +224,7 @@ async def calc_quantity(message: Message, state: FSMContext):
     price = data["price"]
     qty = int(text)
     total = price * qty
+
 
     def fmt(n):
         return f"{n:,}".replace(",", " ")
@@ -241,6 +247,12 @@ async def calc_quantity(message: Message, state: FSMContext):
         reply_markup=main_menu_kb(),
         parse_mode="HTML",
     )
+
+
+@router.message(Calculator.quantity)
+async def calc_quantity_invalid(message: Message):
+    await message.answer("❌ Iltimos, miqdorni faqat son shaklida kiriting!")
+
 
 
 # ──────────────── about ────────────────

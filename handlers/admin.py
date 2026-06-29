@@ -661,33 +661,72 @@ async def broadcast_content(message: Message, state: FSMContext):
     )
 
 
-@router.callback_query(AdminBroadcast.confirm, F.data == "adm_broadcast_send")
-async def broadcast_send(callback: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    await state.clear()
-    users = await db.get_all_users()
+async def run_broadcast_task(bot, admin_id, users, data):
+    import asyncio
+    from aiogram.exceptions import TelegramRetryAfter
     sent, failed = 0, 0
     for user in users:
         try:
             if data["msg_type"] == "photo":
-                await callback.bot.send_photo(
+                await bot.send_photo(
                     user["telegram_id"], data["msg_file_id"], caption=data["msg_text"]
                 )
             elif data["msg_type"] == "video":
-                await callback.bot.send_video(
+                await bot.send_video(
                     user["telegram_id"], data["msg_file_id"], caption=data["msg_text"]
                 )
             else:
-                await callback.bot.send_message(user["telegram_id"], data["msg_text"])
+                await bot.send_message(user["telegram_id"], data["msg_text"])
             sent += 1
+            await asyncio.sleep(0.05)  # soniyasiga ~20 xabar (Telegram limiti max 30)
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(e.retry_after)
+            try:
+                if data["msg_type"] == "photo":
+                    await bot.send_photo(user["telegram_id"], data["msg_file_id"], caption=data["msg_text"])
+                elif data["msg_type"] == "video":
+                    await bot.send_video(user["telegram_id"], data["msg_file_id"], caption=data["msg_text"])
+                else:
+                    await bot.send_message(user["telegram_id"], data["msg_text"])
+                sent += 1
+            except Exception:
+                failed += 1
         except Exception:
             failed += 1
+
+    try:
+        await bot.send_message(
+            admin_id,
+            f"📢 <b>Broadcast yakunlandi!</b>\n\n"
+            f"✅ Muvaffaqiyatli yuborildi: <b>{sent} ta</b>\n"
+            f"❌ Yuborilmaganlar: <b>{failed} ta</b>",
+            parse_mode="HTML"
+        )
+    except Exception:
+        pass
+
+
+@router.callback_query(AdminBroadcast.confirm, F.data == "adm_broadcast_send")
+async def broadcast_send(callback: CallbackQuery, state: FSMContext):
+    import asyncio
+    data = await state.get_data()
+    await state.clear()
+    users = await db.get_all_users()
+    
     await callback.message.answer(
-        f"📢 <b>Broadcast tugadi!</b>\n\n✅ Yuborildi: {sent}\n❌ Xato: {failed}",
+        f"📢 <b>Broadcast boshlandi!</b>\n\n"
+        f"👥 Barcha faol foydalanuvchilar: <b>{len(users)} ta</b>\n"
+        f"⚙️ Xabarlar yuborilmoqda. Yakunlangach sizga xabar beriladi.",
         parse_mode="HTML",
-        reply_markup=admin_panel_kb(),
+        reply_markup=admin_panel_kb()
     )
     await callback.answer()
+
+    # Launch task in background
+    asyncio.create_task(
+        run_broadcast_task(callback.bot, callback.from_user.id, users, data)
+    )
+
 
 
 @router.callback_query(AdminBroadcast.confirm, F.data == "adm_broadcast_cancel")

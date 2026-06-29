@@ -212,7 +212,7 @@ async def checkout_phone(message: Message, state: FSMContext):
     )
 
 
-@router.message(Checkout.address)
+@router.message(Checkout.address, F.text)
 async def checkout_address(message: Message, state: FSMContext):
     if message.text == "❌ Bekor qilish":
         await state.clear()
@@ -229,12 +229,18 @@ async def checkout_address(message: Message, state: FSMContext):
     )
 
 
-@router.message(Checkout.note)
+@router.message(Checkout.address)
+async def checkout_address_invalid(message: Message):
+    await message.answer("❌ Iltimos, manzilni matn ko'rinishida yozing!")
+
+
+@router.message(Checkout.note, F.text)
 async def checkout_note(message: Message, state: FSMContext):
     if message.text == "❌ Bekor qilish":
         await state.clear()
         await message.answer("❌ Bekor qilindi.", reply_markup=main_menu_kb())
         return
+
 
     note = "" if message.text.strip().lower() in ("yo'q", "yoq", "-", "none", "") else message.text.strip()
     await state.update_data(note=note)
@@ -259,6 +265,10 @@ async def checkout_note(message: Message, state: FSMContext):
         reply_markup=checkout_confirm_kb(),
         parse_mode="HTML",
     )
+@router.message(Checkout.note)
+async def checkout_note_invalid(message: Message):
+    await message.answer("❌ Iltimos, izohni matn ko'rinishida yozing!")
+
 
 
 @router.callback_query(Checkout.confirm, F.data == "order_confirm")

@@ -31,9 +31,27 @@ async def main():
 
     dp.include_router(main_router)
 
+    # Global error handler to catch and handle all unhandled exceptions
+    @dp.errors()
+    async def global_error_handler(event):
+        logger.error(f"Global error: {event.exception}", exc_info=True)
+        try:
+            if event.update.callback_query:
+                await event.update.callback_query.answer(
+                    "⚠️ Tizimda xatolik yuz berdi. Iltimos, keyinroq qayta urining.",
+                    show_alert=True
+                )
+            elif event.update.message:
+                await event.update.message.answer(
+                    "⚠️ Tizimda xatolik yuz berdi. Iltimos, keyinroq qayta urining."
+                )
+        except Exception:
+            pass
+
     logger.info("Initializing database...")
     await init_db()
     logger.info("Database ready.")
+
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 

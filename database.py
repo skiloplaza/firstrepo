@@ -1,6 +1,15 @@
 import aiosqlite
 from config import DB_PATH
 
+# Wrap aiosqlite.connect to automatically inject timeout=30.0
+_orig_connect = aiosqlite.connect
+def custom_connect(*args, **kwargs):
+    if "timeout" not in kwargs:
+        kwargs["timeout"] = 30.0
+    return _orig_connect(*args, **kwargs)
+aiosqlite.connect = custom_connect
+
+
 # ──────────────────────────── SCHEMA ────────────────────────────
 
 SCHEMA = """

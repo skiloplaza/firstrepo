@@ -173,12 +173,13 @@ async def cb_search(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-@router.message(Search.query)
+@router.message(Search.query, F.text)
 async def do_search(message: Message, state: FSMContext):
     if message.text == "❌ Bekor qilish":
         await state.clear()
         await message.answer("❌ Bekor qilindi.", reply_markup=main_menu_kb())
         return
+
 
     query = message.text.strip()
     if len(query) < 2:
@@ -226,3 +227,9 @@ async def do_search(message: Message, state: FSMContext):
         reply_markup=builder.as_markup(),
         parse_mode="HTML",
     )
+
+
+@router.message(Search.query)
+async def do_search_invalid(message: Message):
+    await message.answer("❌ Iltimos, mahsulot nomini matn ko'rinishida yozing!")
+
