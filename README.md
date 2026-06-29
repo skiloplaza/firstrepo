@@ -42,3 +42,6 @@ Railway-da deploy qilish uchun quyidagi muhit o'zgaruvchilarini (Environment Var
 - `ADMIN_IDS`: Adminlarning Telegram ID raqamlari (vergul bilan ajratilgan, masalan: `5027595868,12345678`).
 
 *Eslatma: Railway-da bot uzluksiz ishlashi uchun uni "Worker" (Background Service) sifatida ishga tushiring yoki Start command sifatida `python main.py` ni belgilang.*
+
+# firstrepo
+
