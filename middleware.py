@@ -13,7 +13,9 @@ class SubscriptionMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: dict,
     ) -> Any:
-        if not REQUIRED_CHANNELS:
+        import database as db
+        channels = await db.get_channels()
+        if not channels:
             return await handler(event, data)
 
         bot = data["bot"]
@@ -22,6 +24,9 @@ class SubscriptionMiddleware(BaseMiddleware):
         if isinstance(event, Message):
             user_id = event.from_user.id
         elif isinstance(event, CallbackQuery):
+            # Bypass check_subscription callback to prevent loops
+            if event.data == "check_subscription":
+                return await handler(event, data)
             user_id = event.from_user.id
 
         if user_id is None or user_id in ADMIN_IDS:
@@ -29,7 +34,7 @@ class SubscriptionMiddleware(BaseMiddleware):
 
         # Check subscription status for all required channels
         not_subscribed = []
-        for ch in REQUIRED_CHANNELS:
+        for ch in channels:
             try:
                 member = await bot.get_chat_member(ch["username"], user_id)
                 if member.status in ("left", "kicked", "banned"):
@@ -55,9 +60,10 @@ class SubscriptionMiddleware(BaseMiddleware):
         ))
 
         text = (
-            "⚠️ <b>Botdan foydalanish uchun quyidagi kanallarga obuna bo'ling:</b>\n\n"
+            "👋 Assalomu alaykum!\n\n"
+            "⚠️ Botimizdan to'liq foydalanish uchun rasmiy hamkor kanallarimizga a'zo bo'lishingizni so'raymiz:\n\n"
             + "\n".join(f"• <a href='{ch['url']}'>{ch['title']}</a>" for ch in not_subscribed)
-            + "\n\nObuna bo'lgandan so'ng \"✅ Obunani tekshirish\" tugmasini bosing."
+            + "\n\nObuna bo'lib bo'lgach, iltimos, pastdagi <b>«✅ Obunani tekshirish»</b> tugmasini bosing."
         )
 
         if isinstance(event, Message):

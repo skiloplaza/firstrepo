@@ -12,7 +12,7 @@ from keyboards import (
     admin_stickers_kb, admin_settings_kb, broadcast_confirm_kb, main_menu_kb,
 )
 from utils import send_sticker, send_with_effect, fmt_price, load_stickers, save_sticker
-from states import AdminProduct, AdminBroadcast, AdminUserMsg
+from states import AdminProduct, AdminBroadcast, AdminUserMsg, AdminChannel
 
 router = Router()
 
@@ -859,3 +859,111 @@ async def admin_set_global_discount(message: Message, state: FSMContext):
             parse_mode="HTML",
             reply_markup=admin_settings_kb(),
         )
+
+
+# ──────────────── channels ────────────────
+
+@router.callback_query(F.data == "adm_channels")
+async def cb_channels(callback: CallbackQuery):
+    channels = await db.get_channels()
+    text = (
+        "📢 <b>Majburiy obuna kanallari boshqaruvi</b>\n\n"
+        "Boringizdagi kanallar ro'yxati quyida keltirilgan. Foydalanuvchilar botdan foydalanish uchun ushbu kanallarga obuna bo'lishlari shart.\n\n"
+        f"Joriy faol kanallar soni: <b>{len(channels)} ta</b>"
+    )
+    from keyboards import admin_channels_kb
+    try:
+        await callback.message.edit_text(text, reply_markup=admin_channels_kb(channels), parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=admin_channels_kb(channels), parse_mode="HTML")
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("adm_ch_del:"))
+async def cb_ch_del(callback: CallbackQuery):
+    channel_id = int(callback.data.split(":")[1])
+    await db.delete_channel(channel_id)
+    await callback.answer("✅ Kanal muvaffaqiyatli o'chirildi!", show_alert=True)
+    channels = await db.get_channels()
+    text = (
+        "📢 <b>Majburiy obuna kanallari boshqaruvi</b>\n\n"
+        "Boringizdagi kanallar ro'yxati quyida keltirilgan. Foydalanuvchilar botdan foydalanish uchun ushbu kanallarga obuna bo'lishlari shart.\n\n"
+        f"Joriy faol kanallar soni: <b>{len(channels)} ta</b>"
+    )
+    from keyboards import admin_channels_kb
+    try:
+        await callback.message.edit_text(text, reply_markup=admin_channels_kb(channels), parse_mode="HTML")
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data == "adm_ch_add")
+async def cb_ch_add(callback: CallbackQuery, state: FSMContext):
+    from states import AdminChannel
+    from keyboards import cancel_kb
+    await state.set_state(AdminChannel.username)
+    await callback.message.answer(
+        "📢 <b>Yangi kanal qo'shish</b>\n\n"
+        "Kanalning telegram handlesini kiriting (masalan: <code>@texnobrend_uz</code>):",
+        reply_markup=cancel_kb(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.message(AdminChannel.username, F.text)
+async def admin_ch_username(message: Message, state: FSMContext):
+    username = message.text.strip()
+    if not username.startswith("@") and not username.startswith("-100"):
+         await message.answer("⚠️ Iltimos, kanal usernamesini kiriting (masalan: @texnobrend_uz):")
+         return
+    await state.update_data(username=username)
+    from states import AdminChannel
+    from keyboards import cancel_kb
+    await state.set_state(AdminChannel.title)
+    await message.answer(
+        "🏷 <b>Kanal nomi</b>\n\n"
+        "Mijozlarga ko'rinadigan kanal nomini kiriting (masalan: <code>Texnobrend Rasmiy Kanal</code>):",
+        reply_markup=cancel_kb(),
+        parse_mode="HTML"
+    )
+
+
+@router.message(AdminChannel.title, F.text)
+async def admin_ch_title(message: Message, state: FSMContext):
+    title = message.text.strip()
+    await state.update_data(title=title)
+    from states import AdminChannel
+    from keyboards import cancel_kb
+    await state.set_state(AdminChannel.url)
+    await message.answer(
+        "🔗 <b>Kanal taklif havolasi (Invite Link)</b>\n\n"
+        "Mijozlar obuna bo'lishi uchun taklif havolasini kiriting (masalan: <code>https://t.me/texnobrend_uz</code>):",
+        reply_markup=cancel_kb(),
+        parse_mode="HTML"
+    )
+
+
+@router.message(AdminChannel.url, F.text)
+async def admin_ch_url(message: Message, state: FSMContext):
+    url = message.text.strip()
+    if not url.startswith("http"):
+         await message.answer("⚠️ Iltimos, to'g'ri URL havola kiriting (masalan: https://t.me/texnobrend_uz):")
+         return
+    data = await state.get_data()
+    username = data["username"]
+    title = data["title"]
+    
+    success = await db.add_channel(username, title, url)
+    await state.clear()
+    
+    if success:
+        channels = await db.get_channels()
+        from keyboards import admin_channels_kb
+        await message.answer(
+            "✅ <b>Kanal muvaffaqiyatli qo'shildi va faollashtirildi!</b>",
+            reply_markup=admin_channels_kb(channels),
+            parse_mode="HTML"
+        )
+    else:
+        await message.answer("❌ Kanal qo'shishda xatolik yuz berdi (ehtimol ushbu kanal oldin qo'shilgan).")

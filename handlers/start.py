@@ -24,11 +24,13 @@ async def global_cancel(message: Message, state: FSMContext):
 # ──────────────── subscription check helper ────────────────
 
 async def is_subscribed(bot, user_id: int) -> bool:
-    if not REQUIRED_CHANNELS:
-        return True
     if user_id in ADMIN_IDS:
         return True
-    for ch in REQUIRED_CHANNELS:
+    import database as db
+    channels = await db.get_channels()
+    if not channels:
+        return True
+    for ch in channels:
         try:
             member = await bot.get_chat_member(ch["username"], user_id)
             if member.status in ("left", "kicked", "banned"):
@@ -48,11 +50,13 @@ async def cmd_start(message: Message, state: FSMContext):
 
     bot = message.bot
     if not await is_subscribed(bot, user.id):
+        import database as db
+        channels = await db.get_channels()
         await message.answer(
             f"👋 Assalomu alaykum, <b>{user.first_name}</b>!\n\n"
             f"⚠️ Xizmatlarimizdan to'liq foydalanish uchun, iltimos, "
             f"quyidagi rasmiy kanallarimizga a'zo bo'ling:",
-            reply_markup=subscription_kb(),
+            reply_markup=subscription_kb(channels),
             parse_mode="HTML",
         )
         return

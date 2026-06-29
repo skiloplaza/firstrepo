@@ -74,6 +74,13 @@ CREATE TABLE IF NOT EXISTS order_items (
     price       INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS channels (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    username    TEXT UNIQUE NOT NULL,
+    title       TEXT NOT NULL,
+    url         TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS settings (
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL DEFAULT ''
@@ -804,3 +811,35 @@ async def get_stats():
         "revenue": revenue,
         "products": products,
     }
+
+
+# ──────────────────────────── CHANNELS ────────────────────────────
+
+async def get_channels():
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM channels ORDER BY id DESC") as cur:
+            return await cur.fetchall()
+
+
+async def add_channel(username: str, title: str, url: str) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT INTO channels (username, title, url) VALUES (?, ?, ?)",
+                (username, title, url)
+            )
+            await db.commit()
+        return True
+    except Exception:
+        return False
+
+
+async def delete_channel(channel_id: int) -> bool:
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("DELETE FROM channels WHERE id=?", (channel_id,))
+            await db.commit()
+        return True
+    except Exception:
+        return False

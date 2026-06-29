@@ -48,10 +48,11 @@ def remove_kb():
 
 # ──────────────── subscription ────────────────
 
-def subscription_kb():
+def subscription_kb(channels=None):
     builder = InlineKeyboardBuilder()
-    for ch in REQUIRED_CHANNELS:
-        builder.row(_url(f"📢 {ch['title']}", ch["url"]))
+    if channels:
+        for ch in channels:
+            builder.row(_url(f"📢 {ch['title']}", ch["url"]))
     builder.row(_b("✅ Obunani tekshirish", "check_subscription", style=ButtonStyle.SUCCESS))
     return builder.as_markup()
 
@@ -282,9 +283,27 @@ def admin_panel_kb():
             _b("🖼 Stikerlar", "adm_stickers"),
         ],
         [
+            _b("📢 Kanallar", "adm_channels"),
             _b("⚙️ Sozlamalar", "adm_settings"),
         ],
     ])
+
+
+def admin_channels_kb(channels):
+    builder = InlineKeyboardBuilder()
+    if channels:
+        for ch in channels:
+            builder.row(
+                _b(f"📢 {ch['title']}", "noop"),
+                _b("🗑 O'chirish", f"adm_ch_del:{ch['id']}", style=ButtonStyle.DANGER)
+            )
+    builder.row(
+        _b("➕ Yangi kanal qo'shish", "adm_ch_add", style=ButtonStyle.SUCCESS)
+    )
+    builder.row(
+        _b("◀️ Ortga", "adm_panel")
+    )
+    return builder.as_markup()
 
 
 def admin_back_kb():

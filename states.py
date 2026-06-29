@@ -36,3 +36,9 @@ class AdminBroadcast(StatesGroup):
 
 class AdminUserMsg(StatesGroup):
     message = State()
+
+
+class AdminChannel(StatesGroup):
+    username = State()
+    title    = State()
+    url      = State()
